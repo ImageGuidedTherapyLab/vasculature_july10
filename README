@@ -1,0 +1,4 @@
+cd $WORK
+git clone git://github.com/fuentesdt/vasculature_july10.git
+cd vasculature_july10
+qsub ranger_rf_tt.qsub 

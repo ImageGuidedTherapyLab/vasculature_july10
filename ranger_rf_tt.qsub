@@ -1,0 +1,19 @@
+#!/bin/bash                           
+# Which account to be charged cpu time
+#$ -A UTSA
+#  combine stdout stderr              
+#$ -j y                               
+#  jobname                            
+#$ -N rfmodel                              
+#  inherit submission env             
+#$ -V                                 
+# The job is located in the current   
+# working directory.                  
+#$ -cwd                             
+
+#$ -o $JOB_NAME.o$JOB_ID            
+#$ -q development                   
+#$ -pe 16way 16
+#$ -l h_rt=01:00:00                 
+set -x                              
+ibrun python ./treatmentPlanning.py 
