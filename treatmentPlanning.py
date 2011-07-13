@@ -5,6 +5,7 @@ treatment planning model for RF ablation
 import petsc4py, numpy, sys
 PetscOptions =  sys.argv
 PetscOptions.append("-ksp_monitor")
+PetscOptions.append("-ksp_converged_reason")
 PetscOptions.append("-ksp_rtol")
 PetscOptions.append("1.0e-15")
 #PetscOptions.append("-help")
@@ -25,16 +26,10 @@ import femLibrary
 # initialize libMesh data structures
 libMeshInit = femLibrary.PyLibMeshInit(PetscOptions,PETSc.COMM_WORLD) 
   
-
-# inifile = None ==> setup from command line
-inifile=None
-fem.SetupIni( inifile ) 
-# set any additional parameters needed
-fem.SetIniValue( "optical/mu_a_healthy","4.0" ) 
-fem.SetIniValue( "optical/mu_a_tumor","400.0" ) 
-
 # store control variables
 getpot = femLibrary.PylibMeshGetPot(PetscOptions) 
+# set dirichlet bc on vessel
+getpot.SetIniValue( "bc/u_dirichletid","1" ) 
 # from Duck table 2.15
 getpot.SetIniValue( "material/specific_heat","3840.0" ) 
 # set ambient temperature 
@@ -58,9 +53,10 @@ MeshOutputFile = "fem_data.e"
 nsubstep = 1
 acquisitionTime = 5.00
 deltat = acquisitionTime / nsubstep
-ntime  = 60 
+ntime  = 10 
 eqnSystems =  femLibrary.PylibMeshEquationSystems(femMesh,getpot)
-getpot.SetIniPower(nsubstep,  [ [1,5,41,ntime],[1.0,0.0,1.0,0.0] ])
+getpot.SetIniPower(nsubstep,  [ [1,5,ntime],[1.0,2.0,3.0] ])
+#getpot.SetIniPower(nsubstep,  [ [1,5,41,ntime],[1.0,0.0,1.0,0.0] ])
 eqnSystems.AddPennesRFSystem("StateSystem",deltat,ntime) 
 
 # initialize libMesh data structures
