@@ -1,16 +1,7 @@
 
------------------------ ranger -----------------------
 
-cd $WORK
-git clone git://github.com/fuentesdt/vasculature_july10.git
-cd vasculature_july10
-qsub ranger_rf_tt.qsub 
------------------------ shamu -----------------------
+######### Under development 
 
-module use /home/fuentes/modules 
-module load UTSA/local_setup
 
-cd $WORK
-git clone git://github.com/fuentesdt/vasculature_july10.git
-cd vasculature_july10
-qsub shamuTemplate.qsub
+project all data from different mesh vessel to structured grid as
+common info for polynomial chaos response functions
