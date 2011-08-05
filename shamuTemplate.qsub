@@ -1,0 +1,8 @@
+#!/bin/bash
+#$ -pe mpich 8
+#$ -N test
+#$ -cwd
+#$ -S /bin/bash
+#$ -V 
+#$ -j y 
+mpirun_rsh -np $NSLOTS -hostfile $TMP/machines python ./treatmentPlanning.py 
