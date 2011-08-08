@@ -1,7 +1,14 @@
 
+step (1) checkout repo
+step (2) preprocess needed dakota.in files and setup directory hierarchy
+step (3) run the FEM simulations for each realization on the grid, 
+         soln.*.out files should appear in realization.* after this step
+step (4) post process statistics for each time step 
 
-######### Under development 
 
+---------------------  RUN ON SHAMU ------------------------------
 
-project all data from different mesh vessel to structured grid as
-common info for polynomial chaos response functions
+(1) cd $WORK; git clone git@github.com:ImageGuidedTherapyLab/vasculature_july10.git; cd vasculature_july10
+(2) python treatmentPlanning.py --pre_run=ranger_setup_driver
+(3) python treatmentPlanning.py --run_queue=pce --execution=qsub  
+(4) cd pce; module load launcher ; cp $TACC_LAUNCHER_DIR/launcher.sge . ; (edit launcher.sge appropriately, ie # procs/ wall time) ; qsub launcher.sge

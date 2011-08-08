@@ -1,0 +1,7 @@
+num=$(echo $PWD | awk -F. '{print $NF}')
+echo "#!/bin/bash                           " >  exe.qsub 
+echo "# simple wrapper                      " >> exe.qsub
+echo "# redirect from /dev/null             " >> exe.qsub
+echo "#     to save system file system      " >> exe.qsub
+echo "mpirun -n 2 python $PWD/../../treatmentPlanning.py --param_file $1 < /dev/null >  $2.log" >> exe.qsub
+echo 0.0 >  $2 

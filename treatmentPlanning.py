@@ -16,9 +16,52 @@ ntime  = 10
 nsubstep = 1
 acquisitionTime = 6.00
 deltat = acquisitionTime / nsubstep
-FEMMeshFileName="clusterVessel.e"
-#FEMMeshFileName="/data/fuentes/mdacc/uqModelStudy/meshTemplateNormRes.e"
 SolnOutputTemplate = "soln.%04d.out"
+
+# set imaging dimensions of final projection
+imageDimensions = (10,10,20)
+
+# Write Template Image
+def WriteVTKTemplateImage( TemplateFilename ):
+  import vtk
+  import vtk.util.numpy_support as vtkNumPy 
+  import numpy
+  # set Image Template Dimensions
+  femBounds  = (0.0,0.04,-0.04, 0.04, -0.03,0.06)
+  origin = (femBounds[0], femBounds[2], femBounds[4])
+  spacing = ( (femBounds[1]-femBounds[0])/ imageDimensions[0] ,
+              (femBounds[3]-femBounds[2])/ imageDimensions[1] ,
+              (femBounds[5]-femBounds[4])/ imageDimensions[2]  
+            )
+  print femBounds, origin, spacing
+  # imports raw data and stores it.
+  dataImporter = vtk.vtkImageImport()
+  # array is converted to a string of chars and imported.
+  # numpy array stored as ROW MAJOR
+  # MUST write out in COLUMN MAJOR format to be the same as VTK
+  data_string = numpy.zeros(imageDimensions,dtype=numpy.float,order='F').tostring(order='F')
+  dataImporter.CopyImportVoidPointer(data_string, len(data_string))
+  # The type of the newly imported data is set to unsigned char (uint8)
+  dataImporter.SetDataScalarTypeToDouble()
+  # Because the data that is imported only contains an intensity value (it isnt RGB-coded or someting similar), the importer
+  # must be told this is the case.
+  dataImporter.SetNumberOfScalarComponents(1)
+  # The following two functions describe how the data is stored and the dimensions of the array it is stored in. For this
+  # simple case, all axes are of length 75 and begins with the first element. For other data, this is probably not the case.
+  # I have to admit however, that I honestly dont know the difference between SetDataExtent() and SetWholeExtent() although
+  # VTK complains if not both are used.
+  dataImporter.SetDataExtent( 0, imageDimensions[0]-1, 0, imageDimensions[1]-1, 0, imageDimensions[2]-1)
+  dataImporter.SetWholeExtent(0, imageDimensions[0]-1, 0, imageDimensions[1]-1, 0, imageDimensions[2]-1)
+  dataImporter.SetDataSpacing( spacing )
+  dataImporter.SetDataOrigin(  origin  )
+  dataImporter.SetScalarArrayName(  "scalars" )
+  dataImporter.Update()
+  vtkTemplateWriter = vtk.vtkDataSetWriter()
+  vtkTemplateWriter.SetFileName( TemplateFilename )
+  vtkTemplateWriter.SetInput( dataImporter.GetOutput() )
+  vtkTemplateWriter.Update()
+  return 
+
 ####################################################################
 def RunSubProcessQueue(CodeExeCmds,ErrorFile):
   import subprocess
@@ -56,85 +99,7 @@ def RunSubProcessQueue(CodeExeCmds,ErrorFile):
           #raise RuntimeError("\n\n unknown exit code ")
   errorFile.close; errorFile.flush() 
 ####################################################################
-def GetMeshNodes(file_name):
-  """
-  return the number of DOF for a exodus file
-  """
-  import vtk
-  vtkExodusIIReader = vtk.vtkExodusIIReader()
-  vtkExodusIIReader.SetFileName(file_name)
-  #vtkExodusIIReader.SetPointResultArrayStatus("u0",1)
-  vtkExodusIIReader.Update()
-  return vtkExodusIIReader.GetNumberOfNodes()
-####################################################################
-def AssembleStatistics(data_dir):
-  """
-  collect all statistics into one exodus file
-  """
-  # post process stats on FEM mesh
-  # import petsc and numpy
-  import petsc4py, numpy
-  # init petsc
-  PetscOptions =  sys.argv
-  PetscOptions.append("-ksp_monitor")
-  PetscOptions.append("-ksp_rtol")
-  PetscOptions.append("1.0e-15")
-  #PetscOptions.append("-help")
-  petsc4py.init(PetscOptions)
-  #
-  # break processors into separate communicators
-  from petsc4py import PETSc
-  petscRank = PETSc.COMM_WORLD.getRank()
-  petscSize = PETSc.COMM_WORLD.Get_size()
-  sys.stdout.write("petsc rank %d petsc nproc %d\n" % (petscRank, petscSize))
-  
-  # set shell context
-  # TODO import vtk should be called after femLibrary ???? 
-  # FIXME WHY IS THIS????
-  import femLibrary
-  # initialize libMesh data structures
-  libMeshInit = femLibrary.PyLibMeshInit(PetscOptions,PETSc.COMM_WORLD) 
-
-  # store control variables
-  getpot = femLibrary.PylibMeshGetPot(PetscOptions) 
-
-  # initialize FEM Mesh
-  femMesh = femLibrary.PylibMeshMesh()
-  femMesh.ReadFile(FEMMeshFileName) 
-  
-  # hold imaging
-  eqnSystems =  femLibrary.PylibMeshEquationSystems(femMesh,getpot)
-  eqnSystems.AddExplicitSystem( "Mean"   ,1,1 ) 
-  eqnSystems.AddExplicitSystem( "StdDev" ,1,1 ) 
-    
-  # initialize libMesh data structures
-  eqnSystems.init( ) 
-  StatsOutputFile = "%s/fem_stats.e" % data_dir
-  # write IC
-  exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
-  exodusII_IO.WriteTimeStep(StatsOutputFile,eqnSystems, 1, 0.0 )  
-  
-  # loop over time steps and import data
-  for timeID in range(1,ntime*nsubstep):
-    meanFile=open("%s/time.%04d/meanFile.txt" %(data_dir,timeID) ,"r")
-    meandataList = [float(line.strip()) for line in meanFile]
-    # need to pop the first entry from the list 
-    MeanData = PETSc.Vec().createWithArray(numpy.array(meandataList[:] ) , comm=PETSc.COMM_SELF)
-    meanFile.close()
-    stdFile=open("%s/time.%04d/stdFile.txt" %(data_dir,timeID),"r")
-    stddataList = [float(line.strip()) for line in stdFile]
-    StdDev = PETSc.Vec().createWithArray( numpy.array(stddataList[:]) , comm=PETSc.COMM_SELF)
-    stdFile.close()
-    #print MeanData
-    #print StdDev
-    # place data on FEM data structures...
-    eqnSystems.SetSolutionVector( "Mean", MeanData )
-    eqnSystems.SetSolutionVector( "StdDev", StdDev )
-    print timeID
-    # write time
-    exodusII_IO.WriteTimeStep(StatsOutputFile,eqnSystems, timeID+1, timeID*deltat )  
-####################################################################
-def wfsModeling(**kwargs):
+def rfModeling(**kwargs):
   """
   treatment planning model 
   """
@@ -210,14 +175,18 @@ def wfsModeling(**kwargs):
   femMesh = femLibrary.PylibMeshMesh()
   #femMesh.SetupUnStructuredGrid(kwargs['mesh_file'],0,RotationMatrix, Translation  ) 
   # TODO input full path to FEM mesh here
-  femMesh.ReadFile(kwargs['mesh_file'])
-  MeshOutputFile = "fem_data.%04d.e" % kwargs['fileID'] 
+  print "reading vessel mesh with diameter %s distance %s" % (kwargs['cv']['vessel_diameter'],kwargs['cv']['vessel_distance'])
+  FEMMeshFileName="/data/fuentes/utsa/vasculature_july10/clusterVessel.e"
+  femMesh.ReadFile(FEMMeshFileName)
+  # http://en.wikipedia.org/wiki/Tmpfs
+  # tmpfs /dev/shm file system should write to RAM = fast!
+  MeshOutputFile = "/dev/shm/fem_data.%04d.e" % kwargs['fileID'] 
   #fem.SetupStructuredGrid( (10,10,4) ,[0.0,1.0],[0.0,1.0],[0.0,1.0]) 
   
   # add the data structures for the Background System Solve
   # set deltat, number of time steps, power profile, and add system
   eqnSystems =  femLibrary.PylibMeshEquationSystems(femMesh,getpot)
-  getpot.SetIniPower(nsubstep,[ [19,28,46,78,ntime],[0.0,4.0,0.0,9.0,0.0] ])
+  getpot.SetIniPower(nsubstep,[ [1,2,4,7,ntime],[0.0,4.0,0.0,9.0,0.0] ])
   eqnSystems.AddPennesRFSystem("StateSystem",deltat,ntime) 
   
   # initialize libMesh data structures
@@ -233,29 +202,52 @@ def wfsModeling(**kwargs):
   eqnSystems.PrintSelf() 
   
   # write IC
-  #exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
-  #exodusII_IO.WriteTimeStep(MeshOutputFile,eqnSystems, 1, 0.0 )  
+  exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
+  exodusII_IO.WriteTimeStep(MeshOutputFile,eqnSystems, 1, 0.0 )  
   
-  ObjectiveFunction = 0.0
   # loop over time steps and solve
+  ObjectiveFunction = 0.0
   for timeID in range(1,ntime*nsubstep):
   #for timeID in range(1,3):
      print "time step = " ,timeID
      eqnSystems.UpdateTransientSystemTimeStep("StateSystem",timeID ) 
      eqnSystems.SystemSolve( "StateSystem" ) 
      # write soln to disk for processing
-     soln = eqnSystems.GetSolutionVector( "StateSystem" )[...]
-     if ( petscRank == 0 ):
-        numpy.savetxt(SolnOutputTemplate % timeID,soln)
-     #fem.StoreTransientSystemTimeStep("StateSystem",timeID ) 
-  
-     #if ( timeID%nsubstep == 0 ):
-     #  exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*deltat )  
+     if ( timeID%nsubstep == 0 ):
+       exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*deltat )  
+       # project to imaging data
+       if ( petscRank == 0 ):
+         import vtk
+         import vtk.util.numpy_support as vtkNumPy 
+         # read exodus file
+         vtkExodusIIReader = vtk.vtkExodusIIReader()
+         vtkExodusIIReader.SetFileName(MeshOutputFile)
+         vtkExodusIIReader.SetPointResultArrayStatus("u0",1)
+         vtkExodusIIReader.SetTimeStep(timeID-1) 
+         vtkExodusIIReader.Update()
+         # read template image
+         vtkTemplateReader = vtk.vtkDataSetReader() 
+         vtkTemplateReader.SetFileName( "../imageTemplate.vtk" ) 
+         vtkTemplateReader.Update() 
+         # project to imaging
+         vtkResample = vtk.vtkCompositeDataProbeFilter()
+         vtkResample.SetInput(  vtkTemplateReader.GetOutput() )
+         vtkResample.SetSource( vtkExodusIIReader.GetOutput() ) 
+         vtkResample.Update()
+         # write numpy to disk
+         imageData = vtkResample.GetOutput().GetPointData().GetArray('u0')
+         soln      = vtkNumPy.vtk_to_numpy(imageData) 
+         numpy.savetxt(SolnOutputTemplate % timeID,soln)
+
+  # clean up
+  os.remove(MeshOutputFile)
+
+  # return values
   retval = dict([])
   retval['fns'] = [ObjectiveFunction]
   retval['rank'] = petscRank 
   return(retval)
-# end def wfsModeling(**kwargs):
+# end def rfModeling(**kwargs):
 ####################################################################
 def WriteDakotaInputFile(filename,analysis_driver,
                          parameters_file,results_file,dakota_work_directory,
@@ -277,7 +269,7 @@ strategy,
 method,
 	polynomial_chaos
 	  #quadrature_order   = 4 4 4 4 4 4 1 1
-	  quadrature_order   = 1 1 1 4 1 1 1 1
+	  quadrature_order   = 1 1 1 1 1 1 2 2
 	  samples = 10000		
 	  seed = 12347 rng rnum2	
           # vector response input 
@@ -290,9 +282,9 @@ method,
 
 variables,
 	uniform_uncertain = 8			
-      	  lower_bounds      =  50.  500.  .59   3.   70.  500.  .59   3. 
-	  upper_bounds      =  150. 800.  .61   12.   250. 800.  .61  12.
-	  descriptors       = 'mu_a_healthy' 'mu_s_healthy' 'k_0_healthy' 'w_0_healthy' 'mu_a_tumor' 'mu_s_tumor' 'k_0_tumor' 'w_0_tumor'		        	 
+      	  lower_bounds      =  4.  .59   3.   4.  .59   3. .0001  .0004
+	  upper_bounds      =  8.  .61   12.  8.  .61  12. .003   .004
+	  descriptors       = 's_0_healthy' 'k_0_healthy' 'w_0_healthy' 's_0_tumor' 'k_0_tumor' 'w_0_tumor' 'vessel_distance' 'vessel_diameter'
 
 interface,
 	system 
@@ -318,7 +310,7 @@ responses,
   dakotafile.close; dakotafile.flush() 
 # end def WriteDakotaInputFile
 ##################################################################
-def ParseAndRun(param_file,mesh_file):
+def ParseAndRun(param_file):
   # ----------------------------
   # Parse DAKOTA parameters file
   # ----------------------------
@@ -373,12 +365,12 @@ def ParseAndRun(param_file,mesh_file):
   # set up the data structures the rosenbrock analysis code expects
   # for this simple example, put all the variables into a single hardwired array
   continuous_vars = { 
-                      'k_0_healthy' :paramsdict['k_0_healthy' ],
-                      'k_0_tumor'   :paramsdict['k_0_tumor'   ],
-                      'mu_a_healthy':paramsdict['mu_a_healthy'],
-                      'mu_a_tumor'  :paramsdict['mu_a_tumor'  ],
-                      'mu_s_healthy':paramsdict['mu_s_healthy'],
-                      'mu_s_tumor'  :paramsdict['mu_s_tumor'  ],
+                      'k_0_healthy'     :paramsdict['k_0_healthy'],
+                      'k_0_tumor'       :paramsdict['k_0_tumor'  ],
+                      's_0_healthy'     :paramsdict['s_0_healthy'],
+                      's_0_tumor'       :paramsdict['s_0_tumor'  ],
+                      'vessel_distance' :paramsdict['vessel_distance'],
+                      'vessel_diameter' :paramsdict['vessel_diameter'],
                     }
   try:
      continuous_vars['w_0_healthy'] = paramsdict['w_0_healthy' ]  
@@ -386,16 +378,6 @@ def ParseAndRun(param_file,mesh_file):
   except KeyError:
      continuous_vars['w_0_healthy'] = "0.0"
      continuous_vars['w_0_tumor'  ] = "0.0"
-  
-  try:
-     continuous_vars['anfact'] = paramsdict['anfact'   ] 
-  except KeyError:
-     continuous_vars['anfact'] = "0.9"
-  
-  try:
-     continuous_vars['x_translate'] = float( paramsdict['x_translate'] )
-  except KeyError:
-     continuous_vars['x_translate'] = -0.0055
   
   try:
     active_set_vector = [ int(paramsdict['ASV_%d:response_fn_%d' % (i,i) ]) for i in range(1,num_fns+1)  ] 
@@ -408,12 +390,11 @@ def ParseAndRun(param_file,mesh_file):
   fem_params['asv']       = active_set_vector
   fem_params['functions'] = num_fns
   fem_params['fileID']    = fileID 
-  fem_params['mesh_file'] = mesh_file 
   
   # execute the rosenbrock analysis as a separate Python module
-  print "Running wfs model..."
-  fem_results = wfsModeling(**fem_params)
-  print "wfs complete."
+  print "Running RF model..."
+  fem_results = rfModeling(**fem_params)
+  print "RF complete."
   
   
   ## ----------------------------
@@ -467,7 +448,7 @@ parser.add_option("--dakota_exe",
                   action="store", dest="dakota_exe", default="dakota",
                   help="full path to dakota EXE", metavar="EXE")
 parser.add_option("--work_dir", action="store", dest="work_dir", 
-                  default="pce",
+                  default="vessel",
                   help="path to work DIR", metavar="DIR")
 parser.add_option("-q", "--quiet",
                   action="store_false", dest="verbose", default=True,
@@ -487,17 +468,8 @@ parser.add_option( "--execution",
 parser.add_option( "--post_run",
                   action="store", dest="post_run", default=None,
                   help="post process stats in DIR ", metavar = "DIR")
-parser.add_option( "--assemble_stats",
-                  action="store", dest="assemble_stats", default=None,
-                  help="assemble stats in DIR to fem file", metavar = "DIR")
-parser.add_option( "--fem_to_imaging",
-                  action="store", dest="fem_to_imaging", default=None,
-                  help="project stats in FILE to imaging", metavar = "FILE")
 (options, args) = parser.parse_args()
 
-# check if mesh available and get # nodes
-if( not os.path.isfile(FEMMeshFileName) ):
- raise RuntimeError("mesh %s not found !!!!" % FEMMeshFileName)
 # write initial dakota input scripts to setup directories and files
 if (options.pre_run != None):
   # create work dir
@@ -509,7 +481,7 @@ if (options.pre_run != None):
                        "%s/%s" % (os.getcwd(),options.pre_run) , "pce.in", "pce.out" ,
                        "realization", None,1)
   # get # nodes
-  num_func = GetMeshNodes(FEMMeshFileName)
+  num_func = imageDimensions[0] * imageDimensions[1] * imageDimensions[2] 
   POSTEXEC=[]
   for idtime in range(1,ntime):
       timeDir = "%s/time.%04d" % (options.work_dir,idtime)
@@ -519,7 +491,7 @@ if (options.pre_run != None):
                            "echo " , "pce.%04d.in" % idtime ,SolnOutputTemplate % idtime ,
                            "../realization" ,"allow_existing_results",num_func)
       fullpathJob =  "%s/%s/time.%04d" %(os.getcwd(),options.work_dir,idtime)
-      POSTEXEC.append("cd %s; %s pce_time.%04d.in > dakota.log ; rm dakota.log" % ( fullpathJob,options.dakota_exe,idtime ) )
+      POSTEXEC.append("cd %s; %s pce_time.%04d.in > /dev/null" % ( fullpathJob,options.dakota_exe,idtime ) )
   # write script for post processing stats
   postRunStatFile=open( "%s/paramlist" % options.work_dir ,"w")
   for cmdEXE in POSTEXEC:
@@ -528,6 +500,9 @@ if (options.pre_run != None):
   postRunStatFile.close; postRunStatFile.flush() 
   # set it up...
   os.system("cd %s; %s pce_setup.in" % (options.work_dir,options.dakota_exe) )
+  # create image template and write to disk to visualize WRT mesh
+  WriteVTKTemplateImage( "%s/imageTemplate.vtk" % options.work_dir )
+
 #run all jobs in the queue
 elif (options.run_queue != None):
   CODEEXEC=[]
@@ -540,15 +515,13 @@ elif (options.run_queue != None):
         CODEEXEC.append("cd %s; %s exe.qsub" % (fullpathJob,options.execution) )
   RunSubProcessQueue(CODEEXEC,"%s/error_run.log" % options.run_queue)
 elif (options.param_file != None):
-  ParseAndRun(options.param_file,FEMMeshFileName)
+  ParseAndRun(options.param_file)
 elif (options.post_run):
   POSTEXEC=[]
   for idtime in range(1,ntime):
     fullpathJob =  "%s/%s/time.%04d" %(os.getcwd(),options.post_run,idtime)
-    POSTEXEC.append("cd %s; %s pce_time.%04d.in > dakota.log ; rm dakota.log" % ( fullpathJob,options.dakota_exe,idtime ) )
+    POSTEXEC.append("cd %s; %s pce_time.%04d.in > /dev/null" % ( fullpathJob,options.dakota_exe,idtime ) )
   RunSubProcessQueue(POSTEXEC,"%s/error_post.log" % options.post_run)
-elif (options.assemble_stats):
-  AssembleStatistics(options.assemble_stats)
 else:
   parser.print_help()
   print options

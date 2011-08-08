@@ -1,0 +1,17 @@
+num=$(echo $PWD | awk -F. '{print $NF}')
+echo "#!/bin/bash                           " >  exe.qsub 
+echo "#  combine stdout stderr              " >> exe.qsub
+echo "#$ -j y                               " >> exe.qsub
+echo "#  jobname                            " >> exe.qsub
+echo "#$ -N vessel.$num                     " >> exe.qsub
+echo "#  inherit submission env             " >> exe.qsub
+echo "#$ -V                                 " >> exe.qsub
+echo "# The job is located in the current   " >> exe.qsub
+echo "# working directory.                  " >> exe.qsub
+echo "#$ -cwd                               " >> exe.qsub
+echo "                                      " >> exe.qsub
+echo "#$ -o \$JOB_NAME.o\$JOB_ID            " >> exe.qsub
+echo "#$ -q normal                          " >> exe.qsub
+echo "#$ -pe mpich 8                        " >> exe.qsub
+echo "mpirun_rsh -np \$NSLOTS -hostfile \$TMP/machines python $PWD/../../treatmentPlanning.py --run_fem $1 < /dev/null >  $2.log" >> exe.qsub
+echo 0.0 >  $2 
