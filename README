@@ -8,7 +8,7 @@ step (4) post process statistics for each time step
 
 ---------------------  RUN ON SHAMU ------------------------------
 
-(1) cd $WORK; git clone git@github.com:ImageGuidedTherapyLab/vasculature_july10.git; cd vasculature_july10
-(2) python treatmentPlanning.py --pre_run=ranger_setup_driver
-(3) python treatmentPlanning.py --run_queue=pce --execution=qsub  
+(1) cd /share/work/$USER; git clone git://github.com/ImageGuidedTherapyLab/vasculature_july10.git; cd vasculature_july10
+(2) python treatmentPlanning.py --pre_run=shamu_setup_driver
+(3) python treatmentPlanning.py --run_queue=vessel --execution=qsub  
 (4) cd pce; module load launcher ; cp $TACC_LAUNCHER_DIR/launcher.sge . ; (edit launcher.sge appropriately, ie # procs/ wall time) ; qsub launcher.sge
