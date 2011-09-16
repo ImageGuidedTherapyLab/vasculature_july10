@@ -3,80 +3,100 @@
 reset
 set developer on
 
-#create tissue
-create brick x 74 y 74 z 84
-volume 1 move 0 0 12
-
-#create probe
-create cylinder radius 1.36 height 25
-volume 2 move -2.5  0 0
-create cylinder radius 1.36 height 25
-volume 3 move  2.5  0 0
-create cylinder radius 1.36 height 25
-# 5 * cos(pi/6)
-volume 4 move  0  4.3301270 0
-create cylinder radius 7 height 25
-volume 5 move  0 1 0
-
-# create vessel (mm)
-create cylinder radius 4.0 height 120
-
-# Distance of the tip of probe.
-volume 6 move 13 0  0
-# Rotation angle (0 degree = probe is parallel to the vessel)
-#volume 6 rotate 90 about z
-#volume 6 rotate 45 about z
-#volume 6 rotate 0 about z
-
-# cut up domain to mesh
-webcut volume 1 with tool volume 6
-webcut volume 1 with Plane Surface 18
-webcut volume 8 with Plane Surface 17
-webcut volume 9 with tool volume 5
-webcut volume 10 with tool volume 2
-webcut volume 10 with tool volume 3
-webcut volume 10 with tool volume 4
-webcut volume 7  with Plane Surface 18
-webcut volume 14 with Plane Surface 17
-
-# clean up
-delete volume 2 3 4 5 6
-
-# merge
-imprint volume  1 7 8 9 10 11 12 13 14 15
-merge volume    1 7 8 9 10 11 12 13 14 15
-
-# set size
-volume 1 7 8 9 14 15 size 2.0
-volume  10 11 12 13  size 1.0
-#
-## mesh
-mesh volume 10 11 12 13
-mesh volume 9 15 
-mesh volume 14  7 
-mesh volume 1 8 
-#
-# export in pieces
-reset genesis
-block 1 volume  10 9 1 8 
-block 2 volume  7 14 15 
-block 3 volume  11 12 13
-export mesh "clustertmp.e" overwrite
-reset
-import mesh geometry "clustertmp.e" feature_angle 0
-
-# add BC
-sideset 3 surface 3 4 5
-sideset 3 name "cauchy" 
-
-# write in pieces 
-block 1 volume 1
-block 1 name "kidney" 
-block 2 volume 2
-block 2 name "vessel" 
-block 3 volume 3 4 5
-block 3 name "probe" 
-
-# scale from [mm] to [m] and write
-volume all scale 0.001
-export mesh "clusterVessel.e" overwrite
+# APREPRO (An Algebraic Preprocessor for Parameterizing Finite Element Analyses)
+# APREPO to syntax to store variable
+   
+#{_idLoop = 2}
+#{Loop(1)}
+   comment "loop var is" {_idLoop} 
+   #{If(_idLoop==1)}
+      #{_fineSize   = 2.5 }
+      #{_coarseSize = 3.0 }
+   #{EndIf}
+   #{If(_idLoop==2)}
+      #{_fineSize   = 2.5 }
+      #{_coarseSize = 3.0 }
+   #{EndIf}
+   #create tissue
+   create brick x 74 y 74 z 84
+   volume 1 move 0 0 12
+   
+   #create probe
+   create cylinder radius 1.36 height 25
+   volume 2 move -2.5  0 0
+   create cylinder radius 1.36 height 25
+   volume 3 move  2.5  0 0
+   create cylinder radius 1.36 height 25
+   # 5 * cos(pi/6)
+   volume 4 move  0  4.3301270 0
+   create cylinder radius 7 height 25
+   volume 5 move  0 1 0
+   
+   # create vessel (mm)
+   create cylinder radius 4.0 height 120
+   
+   # Distance of the tip of probe.
+   volume 6 move 13 0  0
+   # Rotation angle (0 degree = probe is parallel to the vessel)
+   #volume 6 rotate 90 about z
+   #volume 6 rotate 45 about z
+   #volume 6 rotate 0 about z
+   
+   # cut up domain to mesh
+   webcut volume 1 with tool volume 6
+   webcut volume 1 with Plane Surface 18
+   webcut volume 8 with Plane Surface 17
+   webcut volume 9 with tool volume 5
+   webcut volume 10 with tool volume 2
+   webcut volume 10 with tool volume 3
+   webcut volume 10 with tool volume 4
+   webcut volume 7  with Plane Surface 18
+   webcut volume 14 with Plane Surface 17
+   
+   # clean up
+   delete volume 2 3 4 5 6
+   
+   # merge
+   imprint volume  1 7 8 9 10 11 12 13 14 15
+   merge volume    1 7 8 9 10 11 12 13 14 15
+   
+   # set size
+   volume 1 7 8 9 14 15 size {_coarseSize}
+   volume  10 11 12 13  size {_fineSize}
+   #
+   ## mesh
+   mesh volume 10 11 12 13
+   mesh volume 9 15 
+   mesh volume 14  7 
+   mesh volume 1 8 
+   #
+   # export in pieces
+   reset genesis
+   block 1 volume  10 9 1 8 
+   block 2 volume  7 14 15 
+   block 3 volume  11 12 13
+   export mesh "clustertmp.e" overwrite
+   reset
+   import mesh geometry "clustertmp.e" feature_angle 0
+   
+   # add BC
+   sideset 3 surface 3 4 5
+   sideset 3 name "cauchy" 
+   
+   # write in pieces 
+   block 1 volume 1
+   block 1 name "kidney" 
+   block 2 volume 2
+   block 2 name "vessel" 
+   block 3 volume 3 4 5
+   block 3 name "probe" 
+   
+   # scale from [mm] to [m] and write
+   volume all scale 0.001
+   #{_meshWriteCmd = "export mesh 'clusterVessel"//tostring(_idLoop)//".e' overwrite" }
+   #{DUMP()}
+   {rescan(_meshWriteCmd)}
+   comment "fine size is" {_fineSize} "and coarse size is" {_coarseSize} 
+   # update looping variable
+   #{_idLoop++}
+#{EndLoop}

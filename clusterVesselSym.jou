@@ -1,5 +1,5 @@
 ##pause only move surface elements
-##cubit -nographics -batch -input clusterVessel.jou 
+##cubit -nographics -batch -input clusterVesselSym.jou 
 set developer on
 
 #from	Yusheng Feng Yusheng.Feng@utsa.edu
@@ -130,6 +130,9 @@ ${Loop(1)}
   sideset 2 name "neumann" 
   sideset 3 surface 6 3 4
   sideset 3 name "cauchy" 
+  #skin volume 3 4 make group 3
+  nodeset 1 volume 3 4
+  nodeset 1 name "dirichlet" 
   ##
   # write in pieces 
   block 1 volume 1

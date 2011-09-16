@@ -140,8 +140,9 @@ def rfModeling(**kwargs):
   # from Duck table 2.15
   getpot.SetIniValue( "material/specific_heat","3840.0" ) 
   # set ambient temperature 
-  getpot.SetIniValue( "initial_condition/u_init","34.3" ) 
-  getpot.SetIniValue( "initial_condition/probe_init","21.0" ) 
+  u_init = 34.3
+  getpot.SetIniValue( "initial_condition/u_init","%f" % u_init ) 
+  getpot.SetIniValue( "initial_condition/probe_init","%f" % u_init ) 
   # thermal conductivity from Duck/CRC Handbook
   getpot.SetIniValue( "thermal_conductivity/k_0_healthy",
                               kwargs['cv']['k_0_healthy'] ) 
@@ -187,7 +188,8 @@ def rfModeling(**kwargs):
   # set deltat, number of time steps, power profile, and add system
   eqnSystems =  femLibrary.PylibMeshEquationSystems(femMesh,getpot)
   getpot.SetIniPower(nsubstep,[ [1,2,4,7,ntime],[0.0,4.0,0.0,9.0,0.0] ])
-  eqnSystems.AddPennesRFSystem("StateSystem",deltat,ntime) 
+  rfSystem = eqnSystems.AddPennesRFSystem("StateSystem",deltat) 
+  rfSystem.AddStorageVectors(ntime)
   
   # initialize libMesh data structures
   eqnSystems.init( ) 
@@ -210,8 +212,8 @@ def rfModeling(**kwargs):
   for timeID in range(1,ntime*nsubstep):
   #for timeID in range(1,3):
      print "time step = " ,timeID
-     eqnSystems.UpdateTransientSystemTimeStep("StateSystem",timeID ) 
-     eqnSystems.SystemSolve( "StateSystem" ) 
+     eqnSystems.UpdatePetscFEMSystemTimeStep("StateSystem",timeID ) 
+     rfSystem.SystemSolve( ) 
      # write soln to disk for processing
      if ( timeID%nsubstep == 0 ):
        exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*deltat )  
