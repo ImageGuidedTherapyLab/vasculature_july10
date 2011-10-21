@@ -21,6 +21,98 @@ SolnOutputTemplate = "soln.%04d.out"
 # set imaging dimensions of final projection
 imageDimensions = (10,10,20)
 
+def WriteCubitJouFile(diameter,distance):
+  print """
+  reset
+  #create tissue
+  create brick x 74 y 74 z 84
+  volume 1 move 0 0 12
+  
+  #create probe
+  create cylinder radius 1.36 height 25
+  volume 2 move -2.5  0 0
+  create cylinder radius 1.36 height 25
+  volume 3 move  2.5  0 0
+  create cylinder radius 1.36 height 25
+  # 5 * cos(pi/6)
+  volume 4 move  0  4.3301270 0
+  create cylinder radius 8 height 25
+  
+  # create vessel
+  # create cylinder radius 4.0 height 120
+  create cylinder radius %s height 120
+  volume 6 move %s 0  0
+  
+  # cut up domain to mesh
+  webcut volume 1 with tool volume 6
+  webcut volume 1 with Plane Surface 18
+  webcut volume 8 with Plane Surface 17
+  webcut volume 9 with tool volume 5
+  webcut volume 10 with tool volume 2
+  webcut volume 10 with tool volume 3
+  webcut volume 10 with tool volume 4
+  webcut volume 7  with Plane Surface 18
+  webcut volume 14 with Plane Surface 17
+  
+  # clean up
+  delete volume 2 3 4 5 6
+  
+  # only mesh half
+  webcut volume 1 8 9 10 13 with plane xplane 
+  delete volume 11 16 17 18 19 20 
+  
+  # merge
+  imprint volume  1 7 8 9 10 12 13 14 15
+  merge volume    1 7 8 9 10 12 13 14 15
+  
+  # set size
+  volume 1 7 8 9 14 15 size {_coarseSize}
+  volume  10 12 13     size {_fineSize}
+  
+  # mesh tets
+  mesh volume 10 12 13
+  mesh volume 9 1 7 8 14 15 
+  
+  #
+  # export in pieces
+  reset genesis
+  block 1 volume  10 9 1 8 
+  block 2 volume  7 14 15 
+  block 3 volume  12 13
+  # add BC
+  sideset 2 surface 84 130 118 119 104 105 94
+  sideset 2 name "neumann" 
+  
+  export mesh "clustertmp.e" overwrite
+  reset
+  import mesh geometry "clustertmp.e" feature_angle 0
+  ##
+  # add BC
+  sideset 2 surface 7 10 
+  sideset 2 name "neumann" 
+  sideset 3 surface 6 3 4
+  sideset 3 name "cauchy" 
+  #skin volume 3 4 make group 3
+  nodeset 1 volume 3 4
+  nodeset 1 name "dirichlet" 
+  ##
+  # write in pieces 
+  block 1 volume 1
+  block 1 name "kidney" 
+  block 2 volume 2
+  block 2 name "vessel" 
+  block 3 volume 3 4 
+  block 3 name "probe" 
+  #
+  # scale from [mm] to [m] and write
+  volume all scale 0.001
+  ${_meshWriteCmd = "export mesh 'clusterVessel"//tostring(_idRes)//".e' overwrite" }
+  {rescan(_meshWriteCmd)}
+  comment "res id is" {_idRes} 
+  comment "fine size" {_fineSize} "coarse size" {_coarseSize} 
+  comment "radius" {_vesselRadius} "distance" {_vesselDistance}
+  """  %  (diameter,distance) 
+
 # Write Template Image
 def WriteVTKTemplateImage( TemplateFilename ):
   import vtk
@@ -103,151 +195,153 @@ def rfModeling(**kwargs):
   """
   treatment planning model 
   """
-  # import petsc and numpy
-  import petsc4py, numpy
-  # init petsc
-  PetscOptions =  sys.argv
-  PetscOptions.append("-ksp_monitor")
-  PetscOptions.append("-ksp_rtol")
-  PetscOptions.append("1.0e-15")
-  #PetscOptions.append("-help")
-  petsc4py.init(PetscOptions)
-  
-  # break processors into separate communicators
-  from petsc4py import PETSc
-  petscRank = PETSc.COMM_WORLD.getRank()
-  petscSize = PETSc.COMM_WORLD.Get_size()
-  sys.stdout.write("petsc rank %d petsc nproc %d\n" % (petscRank, petscSize))
+  ## # import petsc and numpy
+  ## import petsc4py, numpy
+  ## # init petsc
+  ## PetscOptions =  sys.argv
+  ## PetscOptions.append("-ksp_monitor")
+  ## PetscOptions.append("-ksp_rtol")
+  ## PetscOptions.append("1.0e-15")
+  ## #PetscOptions.append("-help")
+  ## petsc4py.init(PetscOptions)
+  ## 
+  ## # break processors into separate communicators
+  ## from petsc4py import PETSc
+  ## petscRank = PETSc.COMM_WORLD.getRank()
+  ## petscSize = PETSc.COMM_WORLD.Get_size()
+  ## sys.stdout.write("petsc rank %d petsc nproc %d\n" % (petscRank, petscSize))
 
-  # set shell context
-  # TODO import vtk should be called after femLibrary ???? 
-  # FIXME WHY IS THIS????
-  import femLibrary
-  # initialize libMesh data structures
-  libMeshInit = femLibrary.PyLibMeshInit(PetscOptions,PETSc.COMM_WORLD) 
-  
-  # store control variables
-  getpot = femLibrary.PylibMeshGetPot(PetscOptions) 
-  # set dirichlet bc on vessel
-  getpot.SetIniValue( "bc/u_dirichletid","1" ) 
-  # from Duck table 2.15
-  getpot.SetIniValue( "material/specific_heat","3840.0" ) 
-  # set ambient temperature 
-  getpot.SetIniValue( "initial_condition/u_init","21.0" ) 
-  # from Duck
-  getpot.SetIniValue( "electric_conductivity/s_0_healthy", "6.0") 
+  ## # set shell context
+  ## # TODO import vtk should be called after femLibrary ???? 
+  ## # FIXME WHY IS THIS????
+  ## import femLibrary
+  ## # initialize libMesh data structures
+  ## libMeshInit = femLibrary.PyLibMeshInit(PetscOptions,PETSc.COMM_WORLD) 
+  ## 
+  ## # store control variables
+  ## getpot = femLibrary.PylibMeshGetPot(PetscOptions) 
+  ## # set dirichlet bc on vessel
+  ## getpot.SetIniValue( "bc/u_dirichletid","1" ) 
+  ## # from Duck table 2.15
+  ## getpot.SetIniValue( "material/specific_heat","3840.0" ) 
+  ## # set ambient temperature 
+  ## getpot.SetIniValue( "initial_condition/u_init","21.0" ) 
+  ## # from Duck
+  ## getpot.SetIniValue( "electric_conductivity/s_0_healthy", "6.0") 
 
-  # from Duck table 2.15
-  getpot.SetIniValue( "material/specific_heat","3840.0" ) 
-  # set ambient temperature 
-  u_init = 34.3
-  getpot.SetIniValue( "initial_condition/u_init","%f" % u_init ) 
-  getpot.SetIniValue( "initial_condition/probe_init","%f" % u_init ) 
-  # thermal conductivity from Duck/CRC Handbook
-  getpot.SetIniValue( "thermal_conductivity/k_0_healthy",
-                              kwargs['cv']['k_0_healthy'] ) 
-  getpot.SetIniValue( "thermal_conductivity/k_0_tumor",
-                              kwargs['cv']['k_0_tumor'] ) 
-  # perfusion from Duck/CRC Handbook
-  getpot.SetIniValue( "perfusion/w_0_healthy",
-                   kwargs['cv']['w_0_healthy'] ) 
-  getpot.SetIniValue( "perfusion/w_0_tumor",
-                   kwargs['cv']['w_0_tumor'] ) 
-  #
-  #  given the original orientation as two points along the centerline z = x2 -x1
-  #     the transformed orienteation would be \hat{z} = A x2 + b - A x1 - b = A z
-  #  ie transformation w/o translation which is exactly w/ vtk has implemented w/ TransformVector
-  #  TransformVector = TransformPoint - the transation
-  #Setup Affine Transformation for registration
-  RotationMatrix = [[1.,0.,0.],
-                    [0.,1.,0.],
-                    [0.,0.,1.]]
-  Translation =     [0.,0.,0.] 
-  # original coordinate system laser input
-  laserTip    = Translation 
-  
-  # set laser orientation values
-  getpot.SetIniValue( "probe/domain","2") 
-  getpot.SetIniValue( "probe/x_0","%f" % laserTip[0]) 
-  getpot.SetIniValue( "probe/y_0","%f" % laserTip[1]) 
-  getpot.SetIniValue( "probe/z_0","%f" % laserTip[2]) 
-  
-  # initialize FEM Mesh
-  femMesh = femLibrary.PylibMeshMesh()
+  ## # from Duck table 2.15
+  ## getpot.SetIniValue( "material/specific_heat","3840.0" ) 
+  ## # set ambient temperature 
+  ## u_init = 34.3
+  ## getpot.SetIniValue( "initial_condition/u_init","%f" % u_init ) 
+  ## getpot.SetIniValue( "initial_condition/probe_init","%f" % u_init ) 
+  ## # thermal conductivity from Duck/CRC Handbook
+  ## getpot.SetIniValue( "thermal_conductivity/k_0_healthy",
+  ##                             kwargs['cv']['k_0_healthy'] ) 
+  ## getpot.SetIniValue( "thermal_conductivity/k_0_tumor",
+  ##                             kwargs['cv']['k_0_tumor'] ) 
+  ## # perfusion from Duck/CRC Handbook
+  ## getpot.SetIniValue( "perfusion/w_0_healthy",
+  ##                  kwargs['cv']['w_0_healthy'] ) 
+  ## getpot.SetIniValue( "perfusion/w_0_tumor",
+  ##                  kwargs['cv']['w_0_tumor'] ) 
+  ## #
+  ## #  given the original orientation as two points along the centerline z = x2 -x1
+  ## #     the transformed orienteation would be \hat{z} = A x2 + b - A x1 - b = A z
+  ## #  ie transformation w/o translation which is exactly w/ vtk has implemented w/ TransformVector
+  ## #  TransformVector = TransformPoint - the transation
+  ## #Setup Affine Transformation for registration
+  ## RotationMatrix = [[1.,0.,0.],
+  ##                   [0.,1.,0.],
+  ##                   [0.,0.,1.]]
+  ## Translation =     [0.,0.,0.] 
+  ## # original coordinate system laser input
+  ## laserTip    = Translation 
+  ## 
+  ## # set laser orientation values
+  ## getpot.SetIniValue( "probe/domain","2") 
+  ## getpot.SetIniValue( "probe/x_0","%f" % laserTip[0]) 
+  ## getpot.SetIniValue( "probe/y_0","%f" % laserTip[1]) 
+  ## getpot.SetIniValue( "probe/z_0","%f" % laserTip[2]) 
+  ## 
+  ## # initialize FEM Mesh
+  ## femMesh = femLibrary.PylibMeshMesh()
   #femMesh.SetupUnStructuredGrid(kwargs['mesh_file'],0,RotationMatrix, Translation  ) 
   # TODO input full path to FEM mesh here
   print "reading vessel mesh with diameter %s distance %s" % (kwargs['cv']['vessel_diameter'],kwargs['cv']['vessel_distance'])
+  WriteCubitJouFile(kwargs['cv']['vessel_diameter'],kwargs['cv']['vessel_distance'])
   FEMMeshFileName="/data/fuentes/utsa/vasculature_july10/clusterVessel.e"
-  femMesh.ReadFile(FEMMeshFileName)
-  # http://en.wikipedia.org/wiki/Tmpfs
-  # tmpfs /dev/shm file system should write to RAM = fast!
-  MeshOutputFile = "/dev/shm/fem_data.%04d.e" % kwargs['fileID'] 
-  #fem.SetupStructuredGrid( (10,10,4) ,[0.0,1.0],[0.0,1.0],[0.0,1.0]) 
-  
-  # add the data structures for the Background System Solve
-  # set deltat, number of time steps, power profile, and add system
-  eqnSystems =  femLibrary.PylibMeshEquationSystems(femMesh,getpot)
-  getpot.SetIniPower(nsubstep,[ [1,2,4,7,ntime],[0.0,4.0,0.0,9.0,0.0] ])
-  rfSystem = eqnSystems.AddPennesRFSystem("StateSystem",deltat) 
-  rfSystem.AddStorageVectors(ntime)
-  
-  # initialize libMesh data structures
-  eqnSystems.init( ) 
-  
-  # quick error check
-  #errCheckSoln = fem.GetSolutionVector( "StateSystem" )[...]
-  #if (  errCheckSoln.size + 1 != kwargs['functions'] ):
-  #  print "ERROR!! number of response functions incorrect!!"
-  #  raise RuntimeError("soln vec + 1 = %d .NE. num_response = %d"%(errCheckSoln.size+1,kwargs['functions']) )
+  ## femMesh.ReadFile(FEMMeshFileName)
+  ## # http://en.wikipedia.org/wiki/Tmpfs
+  ## # tmpfs /dev/shm file system should write to RAM = fast!
+  ## MeshOutputFile = "/dev/shm/fem_data.%04d.e" % kwargs['fileID'] 
+  ## #fem.SetupStructuredGrid( (10,10,4) ,[0.0,1.0],[0.0,1.0],[0.0,1.0]) 
+  ## 
+  ## # add the data structures for the Background System Solve
+  ## # set deltat, number of time steps, power profile, and add system
+  ## eqnSystems =  femLibrary.PylibMeshEquationSystems(femMesh,getpot)
+  ## getpot.SetIniPower(nsubstep,[ [1,2,4,7,ntime],[0.0,4.0,0.0,9.0,0.0] ])
+  ## rfSystem = eqnSystems.AddPennesRFSystem("StateSystem",deltat) 
+  ## rfSystem.AddStorageVectors(ntime)
+  ## 
+  ## # initialize libMesh data structures
+  ## eqnSystems.init( ) 
+  ## 
+  ## # quick error check
+  ## #errCheckSoln = fem.GetSolutionVector( "StateSystem" )[...]
+  ## #if (  errCheckSoln.size + 1 != kwargs['functions'] ):
+  ## #  print "ERROR!! number of response functions incorrect!!"
+  ## #  raise RuntimeError("soln vec + 1 = %d .NE. num_response = %d"%(errCheckSoln.size+1,kwargs['functions']) )
 
-  # print info
-  eqnSystems.PrintSelf() 
-  
-  # write IC
-  exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
-  exodusII_IO.WriteTimeStep(MeshOutputFile,eqnSystems, 1, 0.0 )  
-  
-  # loop over time steps and solve
-  ObjectiveFunction = 0.0
-  for timeID in range(1,ntime*nsubstep):
-  #for timeID in range(1,3):
-     print "time step = " ,timeID
-     eqnSystems.UpdatePetscFEMSystemTimeStep("StateSystem",timeID ) 
-     rfSystem.SystemSolve( ) 
-     # write soln to disk for processing
-     if ( timeID%nsubstep == 0 ):
-       exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*deltat )  
-       # project to imaging data
-       if ( petscRank == 0 ):
-         import vtk
-         import vtk.util.numpy_support as vtkNumPy 
-         # read exodus file
-         vtkExodusIIReader = vtk.vtkExodusIIReader()
-         vtkExodusIIReader.SetFileName(MeshOutputFile)
-         vtkExodusIIReader.SetPointResultArrayStatus("u0",1)
-         vtkExodusIIReader.SetTimeStep(timeID-1) 
-         vtkExodusIIReader.Update()
-         # read template image
-         vtkTemplateReader = vtk.vtkDataSetReader() 
-         vtkTemplateReader.SetFileName( "../imageTemplate.vtk" ) 
-         vtkTemplateReader.Update() 
-         # project to imaging
-         vtkResample = vtk.vtkCompositeDataProbeFilter()
-         vtkResample.SetInput(  vtkTemplateReader.GetOutput() )
-         vtkResample.SetSource( vtkExodusIIReader.GetOutput() ) 
-         vtkResample.Update()
-         # write numpy to disk
-         imageData = vtkResample.GetOutput().GetPointData().GetArray('u0')
-         soln      = vtkNumPy.vtk_to_numpy(imageData) 
-         numpy.savetxt(SolnOutputTemplate % timeID,soln)
+  ## # print info
+  ## eqnSystems.PrintSelf() 
+  ## 
+  ## # write IC
+  ## exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
+  ## exodusII_IO.WriteTimeStep(MeshOutputFile,eqnSystems, 1, 0.0 )  
+  ## 
+  ## # loop over time steps and solve
+  ## ObjectiveFunction = 0.0
+  ## for timeID in range(1,ntime*nsubstep):
+  ## #for timeID in range(1,3):
+  ##    print "time step = " ,timeID
+  ##    eqnSystems.UpdatePetscFEMSystemTimeStep("StateSystem",timeID ) 
+  ##    rfSystem.SystemSolve( ) 
+  ##    # write soln to disk for processing
+  ##    if ( timeID%nsubstep == 0 ):
+  ##      exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*deltat )  
+  ##      # project to imaging data
+  ##      if ( petscRank == 0 ):
+  ##        import vtk
+  ##        import vtk.util.numpy_support as vtkNumPy 
+  ##        # read exodus file
+  ##        vtkExodusIIReader = vtk.vtkExodusIIReader()
+  ##        vtkExodusIIReader.SetFileName(MeshOutputFile)
+  ##        vtkExodusIIReader.SetPointResultArrayStatus("u0",1)
+  ##        vtkExodusIIReader.SetTimeStep(timeID-1) 
+  ##        vtkExodusIIReader.Update()
+  ##        # read template image
+  ##        vtkTemplateReader = vtk.vtkDataSetReader() 
+  ##        vtkTemplateReader.SetFileName( "../imageTemplate.vtk" ) 
+  ##        vtkTemplateReader.Update() 
+  ##        # project to imaging
+  ##        vtkResample = vtk.vtkCompositeDataProbeFilter()
+  ##        vtkResample.SetInput(  vtkTemplateReader.GetOutput() )
+  ##        vtkResample.SetSource( vtkExodusIIReader.GetOutput() ) 
+  ##        vtkResample.Update()
+  ##        # write numpy to disk
+  ##        imageData = vtkResample.GetOutput().GetPointData().GetArray('u0')
+  ##        soln      = vtkNumPy.vtk_to_numpy(imageData) 
+  ##        numpy.savetxt(SolnOutputTemplate % timeID,soln)
 
-  # clean up
-  os.remove(MeshOutputFile)
+  ## # clean up
+  ## os.remove(MeshOutputFile)
 
   # return values
   retval = dict([])
-  retval['fns'] = [ObjectiveFunction]
-  retval['rank'] = petscRank 
+  retval['fns'] = [0.0]
+  ##retval['fns'] = [ObjectiveFunction]
+  ##retval['rank'] = petscRank 
   return(retval)
 # end def rfModeling(**kwargs):
 ####################################################################
@@ -271,7 +365,7 @@ strategy,
 method,
 	polynomial_chaos
 	  #quadrature_order   = 4 4 4 4 4 4 1 1
-	  quadrature_order   = 1 1 1 1 1 1 2 2
+	  quadrature_order   = 1 1 1 1 1 1 4 4
 	  samples = 10000		
 	  seed = 12347 rng rnum2	
           # vector response input 

@@ -79,8 +79,9 @@ ${Loop(1)}
   create cylinder radius 8 height 25
   
   # create vessel
-  create cylinder radius 4.0 height 120
-  volume 6 move 14 0  0
+  # create cylinder radius 4.0 height 120
+    create cylinder radius 0.05 height 120
+  volume 6 move 30 0  0
   
   # cut up domain to mesh
   webcut volume 1 with tool volume 6
@@ -111,6 +112,7 @@ ${Loop(1)}
   # mesh
   mesh volume 10 12 13
   mesh volume 9 1 7 8 14 15 
+  
   #
   # export in pieces
   reset genesis
@@ -152,3 +154,4 @@ ${Loop(1)}
   # update looping variable
   ${_idRes++}
 ${EndLoop}
+
