@@ -10,5 +10,13 @@ step (4) post process statistics for each time step
 
 (1) cd $WORK; git clone git://github.com/ImageGuidedTherapyLab/vasculature_july10.git; cd vasculature_july10
 (2) python treatmentPlanning.py --pre_run=ranger_setup_driver
-(3) cd vessel/realization.1 ; qsub exe.qsub
+(3) cd vessel/realization.1 ; (create fem mesh named "clusterVessel.e" with distance diameter shown in pce.in); qsub exe.qsub
+      repeat for all realizations IE
+         repeat for realization.2 
+         repeat for realization.3 
+         repeat for realization.4 
+                . 
+                . 
+                . 
+                . 
 (4) cd vessel; module load launcher ; cp $TACC_LAUNCHER_DIR/launcher.sge . ; (edit launcher.sge appropriately, ie # procs/ wall time) ; qsub launcher.sge
