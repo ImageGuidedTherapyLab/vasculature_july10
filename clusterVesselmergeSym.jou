@@ -1,0 +1,301 @@
+##pause only move surface elements
+##cubit -nographics -batch -input clusterVesselSym.jou 
+reset
+set developer on
+
+#from	Yusheng Feng Yusheng.Feng@utsa.edu
+#to	Carlos Acosta <carlos.acosta.berlin@gmail.com>
+#subject	Blood vessel sizes
+#
+#The following are blood vessel sizes (diameters) that you need to incorporate
+#them for mesh generation for each model.
+#
+#Human:
+#
+#Major Arteries:                 3.0 mm
+#First order arterial branch:    1.0 mm
+#Second order arterial branch:   0.6 mm
+#Arterioles:                     0.02 mm
+#Capillaries:                    0.008 mm
+#
+#Dogs:
+#
+#Major Arteries:                 4.0 mm
+#First order arterial branch:    1.3 mm
+#Second order arterial branch:   0.45 mm
+#Third order arterial branch:    0.15 mm
+#Arterioles:                     0.05 mm
+#Capillaries:                    0.008 mm
+#
+#Thus, you have 10 sizes for diameter, 
+#and coupled with 4 distances: 2.5 mm, 5 mm, 10 mm, and 20 mm.
+# A total of 40 cases.
+#
+#YSF
+
+
+# APREPRO (An Algebraic Preprocessor for Parameterizing Finite Element Analyses)
+# APREPO to syntax to store variable
+
+${_vesselRadius   =  0.02   }
+${_vesselRadius   =  0.15   }
+${_vesselRadius   =  0.45   }
+${_vesselRadius   =  0.6    }
+${_vesselRadius   =  1.0    }
+${_vesselRadius   =  1.3    }
+${_vesselRadius   =  3.0    }
+${_vesselRadius   =  4.0    }
+${_vesselRadius   =  0.0008 }
+${_vesselRadius   =  0.09   }
+${_vesselRadius   =  0.9   }
+
+${_vesselDistance =  5.0 }
+${_vesselDistance =  20.0 }
+${_vesselDistance =  10.0 }
+${_vesselDistance =  1.5 }
+${_vesselDistance = _vesselDistance  + 2.5 + 1.36 }
+${_vesselDistance =  12.0 }
+${DUMP()} # list all variables
+   
+${_idRes = 1}
+${Loop(1)}
+  ${If(_idRes==1)}
+     ${_fineSize       =  0.35 }
+     ${_coarseSize     =  1.5 }
+  ${EndIf}
+  ${If(_idRes==2)}
+     ${_fineSize       =  1.5 }
+     ${_coarseSize     =  2.0 }
+  ${EndIf}
+
+
+reset
+reset
+  #create tissue
+  create brick x 74 y 74 z 84
+  volume 1 move 0 0 12
+
+
+#create probe
+create cylinder radius 1.36 height 25
+volume 2 move -2.5  0 0
+create cylinder radius 1.36 height 25
+volume 3 move  2.5  0 0
+create cylinder radius 1.36 height 25
+volume 4 move  0  4.3301270 0
+  # create vessel
+   $create cylinder radius 4.0 height 120
+  create cylinder radius {_vesselRadius}  height 120
+#create cylinder radius 0.9  height 120
+  volume 5  move {_vesselDistance} 0  0
+#volume 5  move 6 0  0
+webcut volume 1 with tool volume 5
+delete volume 5
+webcut volume 1 6 with xplane offset {_vesselDistance}
+
+
+#mesh vol 1 rad
+     curve 30 scheme bias fine size 1 coarse size 4 start vertex 25
+     curve 32 scheme bias fine size 1 coarse size 4 start vertex 26 
+     curve 28 scheme bias fine size 1 coarse size 4 start vertex 22
+     curve 26 scheme bias fine size 1 coarse size 4 start vertex 21
+#mesh vol 1 axi
+     curve 12 scheme bias fine size 1 coarse size 4 start vertex 5
+     curve 31 scheme bias fine size 1 coarse size 4 start vertex 28
+     curve 29 scheme bias fine size 1 coarse size 4 start vertex 26
+     curve 25 scheme bias fine size 1 coarse size 4 start vertex 21
+     curve 27 scheme bias fine size 1 coarse size 4 start vertex 23
+     curve 10 scheme bias fine size 1 coarse size 4 start vertex 6
+     
+     
+volume 1 size 2
+#mesh volume 1
+#mesh volume 6
+#mesh volume 8    
+     
+     
+     
+     
+webcut volume 7 with tool volume 2
+delete volume 2
+webcut volume 9 with tool volume 3
+delete volume 3
+webcut volume 11 with tool volume 4
+delete volume 4
+webcut volume 13 14 with xplane
+delete volume 17
+delete volume 16
+delete volume 10
+     
+
+
+
+webcut volume 12 15 with xplane offset 2.5
+     
+
+#mesh vol 15 rad
+     curve 46 scheme bias fine size 1 coarse size 4 start vertex 33
+     curve 44 scheme bias fine size 1 coarse size 4 start vertex 34 
+     curve 40 scheme bias fine size 1 coarse size 4 start vertex 30
+     curve 42 scheme bias fine size 1 coarse size 4 start vertex 29
+#mesh vol 15 axi
+     curve 45 scheme bias fine size 1 coarse size 4 start vertex 35
+     curve 82 scheme bias fine size 1 coarse size 4 start vertex 63
+     curve 84 scheme bias fine size 1 coarse size 4 start vertex 64
+     curve 41 scheme bias fine size 1 coarse size 4 start vertex 32
+     curve 39 scheme bias fine size 1 coarse size 4 start vertex 29
+     curve 43 scheme bias fine size 1 coarse size 4 start vertex 34
+
+webcut volume 19 with plane surface 66
+webcut volume 20 with plane surface 82
+volume 21 18 12 14 19 20 size 1
+#mesh volume 21 18 12 14 19 20
+webcut volume 15 8 with plane surface 92
+volume 23  size 0.4
+volume 15 22 size 0.1
+
+webcut volume 22 23 with plane surface 90
+     
+volume 1 size 2
+#mesh volume 1
+#mesh volume 6
+#mesh volume 8    
+     
+     
+     
+     
+#webcut volume 7 with tool volume 2
+#delete volume 2
+#webcut volume 9 with tool volume 3
+#delete volume 3
+#webcut volume 11 with tool volume 4
+#delete volume 4
+#webcut volume 13 14 with xplane
+#delete volume 17
+#delete volume 16
+#delete volume 10
+     
+
+
+
+
+#mesh vol 15 rad
+     curve 44 scheme bias fine size 1 coarse size 4 start vertex 34
+     curve 191 scheme bias fine size 1 coarse size 4 start vertex 122 
+     curve 42 scheme bias fine size 1 coarse size 4 start vertex 29
+     curve 196 scheme bias fine size 1 coarse size 4 start vertex 123
+#mesh vol 15 axi
+     curve 201 scheme bias fine size 1 coarse size 4 start vertex 126
+     curve 193 scheme bias fine size 1 coarse size 4 start vertex 121
+     curve 192 scheme bias fine size 1 coarse size 4 start vertex 122
+     curve 195 scheme bias fine size 1 coarse size 4 start vertex 123
+     curve 197 scheme bias fine size 1 coarse size 4 start vertex 124
+     curve 199 scheme bias fine size 1 coarse size 4 start vertex 125
+
+######
+
+#mesh vol 22 rad
+     curve 231 scheme bias fine size 1 coarse size 4 start vertex 140
+     curve 46 scheme bias fine size 1 coarse size 4 start vertex 33 
+     curve 227 scheme bias fine size 1 coarse size 4 start vertex 139
+     curve 40 scheme bias fine size 1 coarse size 4 start vertex 30
+#mesh vol 22 axi
+     curve 234 scheme bias fine size 1 coarse size 4 start vertex 96
+     curve 232 scheme bias fine size 1 coarse size 4 start vertex 36
+     curve 230 scheme bias fine size 1 coarse size 4 start vertex 33
+     curve 228 scheme bias fine size 1 coarse size 4 start vertex 30
+     curve 225 scheme bias fine size 1 coarse size 4 start vertex 31
+     curve 226 scheme bias fine size 1 coarse size 4 start vertex 95
+
+
+
+imprint volume 6 8 23 25
+merge volume 6 8 23 25
+
+volume 6 size 0.1
+mesh volume 6
+volume 8 size 0.1
+mesh volume 8
+
+volume 25 size 0.3
+mesh volume 25
+volume 1 size 1
+volume 23 24 size 0.3
+mesh volume 23
+
+
+
+volume 12 size 1
+mesh volume 12
+
+volume 14 size 1
+mesh volume 14
+
+volume 15 size 1
+mesh volume 15
+
+volume 22 size 1
+mesh volume 22
+
+volume 18 19 20 21 size 1
+mesh volume 18
+mesh volume 19
+mesh volume 20
+mesh volume 21
+mesh volume 24
+
+mesh volume 1
+
+   # export in pieces
+   reset genesis
+  block 1 volume 1 15 19 20 21 22 24
+  block 1 name "Tissue"
+  block 2 volume 6 
+  block 2 name "Vasculature_tissue"
+  block 3 volume 8 23 25
+  block 3 name "Vasculature_applicator"
+  block 4 volume 12 14 18
+  block 4 name "applicator"
+
+export mesh "clustertmp.e" overwrite
+ reset
+ import mesh geometry "clustertmp.e" feature_angle 0
+#add BC
+ sideset 1 surface 1 7 8
+ sideset 1 name "Dirichlet"
+
+ sideset 2 surface 6 9 11 12 13 14
+ sideset 2 name "Neumann"
+
+ sideset 3 surface 2 3 5
+ sideset 3 name "cauchy"
+
+##export mesh 'clusterVessel.e' overwrite
+#export mesh 'Cluster_Vessel_merge.e'  overwrite
+#volume all scale 0.001
+
+  ${_meshWriteCmd = "export mesh 'clusterVessel"//tostring(_idRes)//".e' overwrite" }
+  {rescan(_meshWriteCmd)}
+  comment "res id is" {_idRes} 
+  comment "fine size" {_fineSize} "coarse size" {_coarseSize} 
+  comment "radius" {_vesselRadius} "distance" {_vesselDistance}
+  # update looping variable
+
+volume 1 2 3 4 5 6 7 8 9 10 11 12 visibility on
+volume 1 2 3 4 5 6 7 8 9 10 11 12 mesh visibility on
+
+  ${_idRes++}
+${EndLoop}
+
+
+
+
+
+
+
+
+
+
+
+
+
