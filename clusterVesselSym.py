@@ -75,37 +75,38 @@ cubit.cmd('delete volume 2 3 4 5')
 #cubit.cmd('volume 10 move 0 %12.5e 0' % (ApplicatorHeight+ApplicatorRadius+VesselRadius + ApplicatorDistance ) )
 #cubit.cmd('volume 10 rotate 90 about y ' )
 #cubit.cmd('webcut volume 1  tool volume 10 ')
-#cubit.cmd('delete volume 10 ')
 #
 # create box to group
 cubit.cmd('create brick x %12.5e y %12.5e z 25' % (2.*(ApplicatorHeight+ApplicatorRadius),2.*(ApplicatorHeight+ApplicatorRadius)) )
 #
 ## cut with box
-#cubit.cmd('webcut volume  1 with plane surface 56')
+cubit.cmd('webcut volume  1 6 7 8 9 with plane surface 44')
+cubit.cmd('webcut volume  1 6 7 8 9 with plane surface 43')
+cubit.cmd('delete volume 10 ')
 # 
 # cubit.cmd('webcut volume 14 Plane Surface 20')
 # cubit.cmd('webcut volume 16 Plane Surface 21')
 # 
 # merge
-cubit.cmd('imprint volume   1 6 7 8 9')
-cubit.cmd('merge volume     1 6 7 8 9')
+cubit.cmd('imprint volume   1 6 7 8 9 11 12 13 14 15 16 17 18 19 20')
+cubit.cmd('merge volume     1 6 7 8 9 11 12 13 14 15 16 17 18 19 20')
 
 # set size
 meshResolutions = [(1.0 , 3.8 ), (0.5 , 3.0 ), (0.25, 2.5 )]
 resolutionID = 0
 (fineSize,coarseSize) = meshResolutions[resolutionID]
 
-cubit.cmd('volume  6 7 8 9 size %f' %   fineSize)
-cubit.cmd('volume  1 10 13    size %f' % coarseSize)
-# 
-# mesh 
-cubit.cmd('mesh volume  6 7 8 9 ')
-cubit.cmd('mesh volume    1 ')
-cubit.cmd('surface in volume 10 scheme trimesh  ')
-cubit.cmd('mesh surface in volume 10  ')
-#
-
-cubit.cmd('hexset hex in volume  6 7 8  separate tri in surface in volume 10')
+cubit.cmd('volume  17 18 19 20 size %f' %   fineSize)
+## cubit.cmd('volume  1 10 13    size %f' % coarseSize)
+## # 
+## # mesh 
+cubit.cmd('mesh volume  17 18 19 20 ')
+## cubit.cmd('mesh volume    1 ')
+## cubit.cmd('surface in volume 10 scheme trimesh  ')
+## cubit.cmd('mesh surface in volume 10  ')
+## #
+## 
+## cubit.cmd('hexset hex in volume  6 7 8  separate tri in surface in volume 10')
 
 #cubit.cmd('#')
 #cubit.cmd('# export in pieces')
