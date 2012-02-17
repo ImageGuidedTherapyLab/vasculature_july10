@@ -275,6 +275,7 @@ def rfModeling(**kwargs):
   # http://en.wikipedia.org/wiki/Tmpfs
   # tmpfs /dev/shm file system should write to RAM = fast!
   MeshOutputFile = "/dev/shm/fem_data.%04d.e" % kwargs['fileID'] 
+  MeshOutputFile = "./fem_data.%04d.e" % kwargs['fileID'] 
   #fem.SetupStructuredGrid( (10,10,4) ,[0.0,1.0],[0.0,1.0],[0.0,1.0]) 
   
   # add the data structures for the Background System Solve
@@ -335,7 +336,7 @@ def rfModeling(**kwargs):
          numpy.savetxt(SolnOutputTemplate % timeID,soln)
 
   # clean up
-  os.remove(MeshOutputFile)
+  #os.remove(MeshOutputFile)
 
   # return values
   retval = dict([])
@@ -378,8 +379,8 @@ method,
 
 variables,
 	uniform_uncertain = 8			
-      	  lower_bounds      =  4.  .59   3.   4.  .59   3. .0001  .0004
-	  upper_bounds      =  8.  .61   12.  8.  .61  12. .003   .004
+      	  lower_bounds      =  4.  .59   3.   4.  .59   3. .0005  .0025
+	  upper_bounds      =  8.  .61   12.  8.  .61  12. .003   .020
 	  descriptors       = 's_0_healthy' 'k_0_healthy' 'w_0_healthy' 's_0_tumor' 'k_0_tumor' 'w_0_tumor' 'vessel_distance' 'vessel_diameter'
 
 interface,

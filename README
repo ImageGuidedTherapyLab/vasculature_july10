@@ -1,4 +1,4 @@
-
+.
 step (1) checkout repo
 step (2) preprocess needed dakota.in files and setup directory hierarchy
 step (3) run the FEM simulations for each realization on the grid, 
@@ -19,4 +19,4 @@ step (4) post process statistics for each time step
                 . 
                 . 
                 . 
-(4) cd vessel; module load launcher ; cp $TACC_LAUNCHER_DIR/launcher.sge . ; (edit launcher.sge appropriately, ie # procs/ wall time) ; qsub launcher.sge
+(4) qsub -v WORKDIR=vessel launcher.sge ( post processing and assembly combined in one script)
