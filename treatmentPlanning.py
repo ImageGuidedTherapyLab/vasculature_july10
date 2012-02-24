@@ -21,98 +21,6 @@ SolnOutputTemplate = "soln.%04d.out"
 # set imaging dimensions of final projection
 imageDimensions = (10,10,20)
 
-def WriteCubitJouFile(diameter,distance):
-  print """
-  reset
-  #create tissue
-  create brick x 74 y 74 z 84
-  volume 1 move 0 0 12
-  
-  #create probe
-  create cylinder radius 1.36 height 25
-  volume 2 move -2.5  0 0
-  create cylinder radius 1.36 height 25
-  volume 3 move  2.5  0 0
-  create cylinder radius 1.36 height 25
-  # 5 * cos(pi/6)
-  volume 4 move  0  4.3301270 0
-  create cylinder radius 8 height 25
-  
-  # create vessel
-  # create cylinder radius 4.0 height 120
-  create cylinder radius %s height 120
-  volume 6 move %s 0  0
-  
-  # cut up domain to mesh
-  webcut volume 1 with tool volume 6
-  webcut volume 1 with Plane Surface 18
-  webcut volume 8 with Plane Surface 17
-  webcut volume 9 with tool volume 5
-  webcut volume 10 with tool volume 2
-  webcut volume 10 with tool volume 3
-  webcut volume 10 with tool volume 4
-  webcut volume 7  with Plane Surface 18
-  webcut volume 14 with Plane Surface 17
-  
-  # clean up
-  delete volume 2 3 4 5 6
-  
-  # only mesh half
-  webcut volume 1 8 9 10 13 with plane xplane 
-  delete volume 11 16 17 18 19 20 
-  
-  # merge
-  imprint volume  1 7 8 9 10 12 13 14 15
-  merge volume    1 7 8 9 10 12 13 14 15
-  
-  # set size
-  volume 1 7 8 9 14 15 size {_coarseSize}
-  volume  10 12 13     size {_fineSize}
-  
-  # mesh tets
-  mesh volume 10 12 13
-  mesh volume 9 1 7 8 14 15 
-  
-  #
-  # export in pieces
-  reset genesis
-  block 1 volume  10 9 1 8 
-  block 2 volume  7 14 15 
-  block 3 volume  12 13
-  # add BC
-  sideset 2 surface 84 130 118 119 104 105 94
-  sideset 2 name "neumann" 
-  
-  export mesh "clustertmp.e" overwrite
-  reset
-  import mesh geometry "clustertmp.e" feature_angle 0
-  ##
-  # add BC
-  sideset 2 surface 7 10 
-  sideset 2 name "neumann" 
-  sideset 3 surface 6 3 4
-  sideset 3 name "cauchy" 
-  #skin volume 3 4 make group 3
-  nodeset 1 volume 3 4
-  nodeset 1 name "dirichlet" 
-  ##
-  # write in pieces 
-  block 1 volume 1
-  block 1 name "kidney" 
-  block 2 volume 2
-  block 2 name "vessel" 
-  block 3 volume 3 4 
-  block 3 name "probe" 
-  #
-  # scale from [mm] to [m] and write
-  volume all scale 0.001
-  ${_meshWriteCmd = "export mesh 'clusterVessel"//tostring(_idRes)//".e' overwrite" }
-  {rescan(_meshWriteCmd)}
-  comment "res id is" {_idRes} 
-  comment "fine size" {_fineSize} "coarse size" {_coarseSize} 
-  comment "radius" {_vesselRadius} "distance" {_vesselDistance}
-  """  %  (diameter,distance) 
-
 # Write Template Image
 def WriteVTKTemplateImage( TemplateFilename ):
   import vtk
@@ -269,7 +177,6 @@ def rfModeling(**kwargs):
   #femMesh.SetupUnStructuredGrid(kwargs['mesh_file'],0,RotationMatrix, Translation  ) 
   # TODO input full path to FEM mesh here
   print "hopfully reading vessel mesh with diameter %s distance %s" % (kwargs['cv']['vessel_diameter'],kwargs['cv']['vessel_distance'])
-  ##WriteCubitJouFile(kwargs['cv']['vessel_diameter'],kwargs['cv']['vessel_distance'])
   FEMMeshFileName="./clusterVessel.e"
   femMesh.ReadFile(FEMMeshFileName)
   # http://en.wikipedia.org/wiki/Tmpfs
