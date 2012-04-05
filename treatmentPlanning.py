@@ -166,6 +166,10 @@ def rfModeling(**kwargs):
   # original coordinate system laser input
   laserTip    = Translation 
   
+  # set steady state
+  getpot.SetIniValue( "steadystate/domain_0","true") 
+  getpot.SetIniValue( "steadystate/domain_1","true") 
+
   # set laser orientation values
   getpot.SetIniValue( "probe/domain","2") 
   getpot.SetIniValue( "probe/x_0","%f" % laserTip[0]) 
@@ -205,8 +209,12 @@ def rfModeling(**kwargs):
   eqnSystems.PrintSelf() 
   
   # write IC
-  exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
-  exodusII_IO.WriteTimeStep(MeshOutputFile,eqnSystems, 1, 0.0 )  
+  exodusII_IO = None
+  WriteExodus = False
+  WriteExodus = True
+  if (WriteExodus):
+    exodusII_IO = femLibrary.PylibMeshExodusII_IO(femMesh)
+    exodusII_IO.WriteTimeStep(MeshOutputFile,eqnSystems, 1, 0.0 )  
   
   # loop over time steps and solve
   ObjectiveFunction = 0.0
@@ -216,31 +224,12 @@ def rfModeling(**kwargs):
      eqnSystems.UpdatePetscFEMSystemTimeStep("StateSystem",timeID ) 
      rfSystem.SystemSolve( ) 
      # write soln to disk for processing
-     if ( timeID%nsubstep == 0 ):
-       exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*deltat )  
-       # project to imaging data
-       if ( petscRank == 0 ):
-         import vtk
-         import vtk.util.numpy_support as vtkNumPy 
-         # read exodus file
-         vtkExodusIIReader = vtk.vtkExodusIIReader()
-         vtkExodusIIReader.SetFileName(MeshOutputFile)
-         vtkExodusIIReader.SetPointResultArrayStatus("u0",1)
-         vtkExodusIIReader.SetTimeStep(timeID-1) 
-         vtkExodusIIReader.Update()
-         # read template image
-         vtkTemplateReader = vtk.vtkDataSetReader() 
-         vtkTemplateReader.SetFileName( "../imageTemplate.vtk" ) 
-         vtkTemplateReader.Update() 
-         # project to imaging
-         vtkResample = vtk.vtkCompositeDataProbeFilter()
-         vtkResample.SetInput(  vtkTemplateReader.GetOutput() )
-         vtkResample.SetSource( vtkExodusIIReader.GetOutput() ) 
-         vtkResample.Update()
-         # write numpy to disk
-         imageData = vtkResample.GetOutput().GetPointData().GetArray('u0')
-         soln      = vtkNumPy.vtk_to_numpy(imageData) 
-         numpy.savetxt(SolnOutputTemplate % timeID,soln)
+     soln = eqnSystems.GetPetscFEMSystemSolnSubVector( "StateSystem", 0)[...]
+     if ( petscRank == 0 ):
+        numpy.savetxt(SolnOutputTemplate % timeID,soln)
+     #fem.StoreTransientSystemTimeStep("StateSystem",timeID ) 
+     if (WriteExodus):
+       exodusII_IO.WriteTimeStep(MeshOutputFile ,eqnSystems, timeID+1, timeID*kwargs['deltat'])  
 
   # clean up
   #os.remove(MeshOutputFile)
