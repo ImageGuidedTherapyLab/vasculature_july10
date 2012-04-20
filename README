@@ -9,7 +9,7 @@ step (4) post process statistics for each time step
 ---------------------  RUN ON RANGER ------------------------------
 
 (1) cd $WORK; git clone git://github.com/ImageGuidedTherapyLab/vasculature_july10.git; cd vasculature_july10
-(2) python gPCWFS.py --config_ini=control_vessel.ini --pre_run=ranger_setup_driver --s_0_healthy
+(2) python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --config_ini=control_vessel.ini --pre_run=ranger_setup_driver --s_0_healthy
 (3) cd vessel_0/realization.1 ; 
       repeat for all realizations, IE
          repeat for realization.2 
