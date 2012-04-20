@@ -9,12 +9,27 @@ step (4) post process statistics for each time step
 ---------------------  RUN ON RANGER ------------------------------
 
 (1) cd $WORK; git clone git://github.com/ImageGuidedTherapyLab/vasculature_july10.git; cd vasculature_july10
-(2) python treatmentPlanning.py --pre_run=ranger_setup_driver
-(3) cd vessel/realization.1 ; (create fem mesh named "clusterVessel.e" with distance diameter shown in pce.in); qsub exe.qsub
-      repeat for all realizations IE
+(2) python gPCWFS.py --config_ini=control_vessel.ini --pre_run=ranger_setup_driver --s_0_healthy
+(3) cd vessel_0/realization.1 ; 
+      repeat for all realizations, IE
          repeat for realization.2 
          repeat for realization.3 
          repeat for realization.4 
+                . 
+                . 
+                . 
+                . 
+      repeat for all meshes/ all vessels, IE
+         cd vessel_1/realization.1 ; 
+           repeat for all realizations, IE
+              repeat for realization.2 
+              repeat for realization.3 
+              repeat for realization.4 
+         cd vessel_2/realization.1 ; 
+           repeat for all realizations, IE
+              repeat for realization.2 
+              repeat for realization.3 
+              repeat for realization.4 
                 . 
                 . 
                 . 

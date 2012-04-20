@@ -93,5 +93,5 @@ echo " "
 echo " Parameteric Job Complete"
 echo " assemblying... "
 cd ..
-ibrun -n 16 -o 0 python $PWD/treatmentPlanning.py --assemble_stats=$WORKDIR
+ibrun -n 16 -o 0 python $DDDAS_SRC/gPCWFS.py --assemble_stats=$WORKDIR
 echo " assembly complete !!! "

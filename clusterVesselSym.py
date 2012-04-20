@@ -114,7 +114,7 @@ def GenerateRFMesh(VesselDiameter ,VesselDistance):
   
   # export in pieces
   cubit.cmd('reset genesis')
-  cubit.cmd('block 1 volume  12 13 14 15 1 16 11 6 7 8')
+  cubit.cmd('block 1 volume  12 13 14 1 16 11 6 7 8')
   cubit.cmd('block 1 name "liver"  ')
   cubit.cmd('block 2 volume  9 15 20 ')
   cubit.cmd('block 2 name "vessel"  ')
@@ -131,7 +131,7 @@ def GenerateRFMesh(VesselDiameter ,VesselDistance):
   #
   # scale from [mm] to [m] and write'
   cubit.cmd('volume all scale 0.001')
-  cubit.cmd('export mesh "clusterVesselDistance%fDiameter%f.e" overwrite' % (VesselDiameter,VesselDistance) )
+  cubit.cmd('export mesh "clusterVesselDistance%fDiameter%f.e" overwrite' % (VesselDistance,VesselDiameter) )
 # end def GenerateRFMesh
 ##################################################################
 def ParseDakotaFile(param_file):
@@ -211,6 +211,8 @@ def ParseDakotaFile(param_file):
 diameterList = [0.15,0.45,0.6,1.0,1.3,3.0,4.0] #mm
 distanceList = [2.5,5.0,10.0,20.0] #mm
 
+#diameterList = [4.0] #mm
+#distanceList = [20.0] #mm
 for vessel_diameter in diameterList:
   for vessel_distance in distanceList:
     GenerateRFMesh(vessel_diameter,vessel_distance) 
