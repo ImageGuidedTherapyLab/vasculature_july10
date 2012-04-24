@@ -35,3 +35,58 @@ step (4) post process statistics for each time step
                 . 
                 . 
 (4) qsub -v WORKDIR=vessel launcher.sge ( post processing and assembly combined in one script)
+
+--------------------  Fahrenholtz directions updates ------------------------------
+
+1) Check out the repo; use github password (if that doesn’t work, use Ranger password)
+
+cd $WORK; git clone git@github.com:ImageGuidedTherapyLab/uq_canine_feb07.git uq_canine_feb07
+
+2) Setup gPC run;
+
+Look in the file ‘control_vessel.ini’ for the setup. Modify it as necessary. Semicolons ‘;’ are comments. I pretty certain pounds ‘#’ are comments, too.
+
+The control_vessel.ini file is split into sections labeled with brackets ‘[ ]’. E.g. the first section is [exec] and [dakota] is the second. Following the [ ], there are options for the section.
+
+In the [dakota] section, set the response levels to what you need.
+
+‘responselevels’ has two two response functions (response functions are what our model is solving for and recording); 0 = temperature; 1 = thermal dose (Sam) or 1 = thermal conductivity (Carlos). Response levels look at the probability for a given variable value. The default response level is [(0,[42.0,57.0,90.0]),(1,[0.5,0.8,1.0])]. That means for variable 0 (temperature), the simulation will record the cumulative distribution function (CDF) at each value (42, 57, and 90 degrees Celsius). Each ‘level’ of any kind is recorded in the FEM mesh at the end (the ‘.e’ file).
+
+Set the probability levels to what you need. The probability levels are the complement of the response levels. Probability levels record the response functions at a particular value of the CDF. Common probability levels are 0.01, 0.05, 0.5 (the median), 0.95, and 0.99 or 1%, 5%, etc.
+
+I don’t know what the reliability levels are... The 5.2 User’s and Reference manuals should tell us.
+
+In the [pre_run] section, uncommented ‘mesh_files’ list two meshes. Number 1, i.e. ‘meshTemplateQuarter1.e’ is coarse. Number 2 is finer. I think using the finer one by itself should be fine.
+
+In the [timestep] section, I don’t know what the ‘acquisitiontime’ or ‘nsubstep’ are. I suspect they have something to do with the conversion of simulation time steps and real time. Perhaps ‘acquisitiontime’ is the number of seconds in one time step. ‘nsubstep’ might be the number of time steps between recorded time steps.
+
+‘powerhistory’ is correct for dog 1. It can be modified for any other experiment. The first array in the power history is the timing in units of time steps (1 time step = 6 seconds, I think). The second array is the magnitude of the power in Watts.
+
+In the [initial_condition] section, ‘u_init’ is the initial, background temperature.
+
+In the [perfusion] section, you make the choices about perfusion. ‘w_0_healthy’ is the only default option (default being what is in the repo). We have to figure out what the other perfusion options are. I have figured out that ‘w_0_healthy_lb’ and ‘w_0_healthy_ub’ are respectively the healthy perfusion’s upper and lower bounds for a uniform distribution. w_0_healthy is the mean perfusion for healthy tissue for dog. It’s interesting that there are default values for w_0_healthy even without the upper and lower bounds defined. Likewise, even though there are no default lines for k_0_healthy, mu_a_healthy, and mu_s_healthy; I know it is correct when you try to use them (see following directions to see how to choose gPC expanded variables).
+
+That’s the last of the sections.
+
+Once your run is prepared using the ‘.ini’ file, use this command to write your run:
+
+python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --config_ini=control_vessel.ini --pre_run=ranger_setup_driver --s_0_healthy
+
+‘--s_0_healthy’ is the argument that indicates what input variables have gPC expansions, in this case the simulation will use the healthy perfusion and expand it with gPC. You can use gPC on multiple parameters by just adding more parameter arguments.
+
+You can check the available arguments for more input gPC parameters with this command (the same one without arguments):
+
+python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py
+
+After you use that command, you should have two new directories with many more subdirectories. The subdirectories are time.000.* (temperature response function), time.001.* (dose response funciton), realization.* (the realization), and worst.*  (permutations of the worst case scenario; DF thinks the first and last realizations should be the true extremes).
+
+3) Submit to the queue. Change the directory as needed (vessel_0 is the example here).
+
+ qsub -v WORKDIR=vessel_0 realization.qsub
+
+You can ask the supercomputer to e-mail you about its progress. Just open ‘realization.qsub’ and add the two following lines:
+
+#$ -M samuel.fahrenholtz@gmail.com         		
+#$ -m be							
+(‘-M’ is your e-mail)
+(‘-m’ indicates when you should get the e-mail; in this case it is for the beginning and end, hence ‘be’)
