@@ -1,0 +1,14 @@
+#!/bin/bash
+# simple wrapper 
+num=$(echo $PWD | awk -F. '{print $NF}')
+CONCURRENCY=16
+# number of processors per application job
+APPLIC_PROCS=16
+
+# node offset
+RELATIVE_NODE=$(( (num - 1) % CONCURRENCY * APPLIC_PROCS ))
+
+#echo $num ibrun -n $APPLIC_PROCS -o $RELATIVE_NODE python ./deltapModeling.py $1 $2  $PWD
+#  redirect from /dev/null to save system file system
+ibrun -n $APPLIC_PROCS -o $RELATIVE_NODE python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --run_fem  $1 $2 < /dev/null > $2.log
+echo 0.0 >  $2 
