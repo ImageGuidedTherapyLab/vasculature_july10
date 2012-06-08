@@ -124,10 +124,10 @@ def GenerateRFMesh(VesselDiameter ,VesselDistance):
   cubit.cmd('skin volume all make sideset 2')
   #cubit.cmd('sideset 2 surface 84 130 118 119 104 105 94')
   cubit.cmd('sideset 2 name "neumann" ')
-  cubit.cmd('nodeset 1 volume 17 18 19')
-  cubit.cmd('nodeset 1 name "dirichletApplicator"')
-  cubit.cmd('nodeset 2 volume  9 15 20')
-  cubit.cmd('nodeset 2 name "dirichletVessel"')
+  cubit.cmd('nodeset 5 volume 17 18 19')
+  cubit.cmd('nodeset 5 name "dirichletApplicator"')
+  cubit.cmd('nodeset 4 volume  9 15 20')
+  cubit.cmd('nodeset 4 name "dirichletVessel"')
   #
   # scale from [mm] to [m] and write'
   cubit.cmd('volume all scale 0.001')
