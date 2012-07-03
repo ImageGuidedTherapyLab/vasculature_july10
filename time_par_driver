@@ -11,4 +11,4 @@ RELATIVE_NODE=$(( (num - 1) % CONCURRENCY * APPLIC_PROCS ))
 #echo $num ibrun -n $APPLIC_PROCS -o $RELATIVE_NODE python ./deltapModeling.py $1 $2  $PWD
 #  redirect from /dev/null to save system file system
 echo $1
-python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --extract_exo $PWD/$2 
+python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --extract_exo $2 

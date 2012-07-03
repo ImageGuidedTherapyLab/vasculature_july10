@@ -1,21 +1,21 @@
-num=$(echo $PWD | awk -F. '{print $NF}')
-echo "#!/bin/bash                           " >  exe.qsub 
-echo "# Which account to be charged cpu time" >> exe.qsub
-echo "#$ -A UTMDACC-DIP                     " >> exe.qsub
-echo "#  combine stdout stderr              " >> exe.qsub
-echo "#$ -j y                               " >> exe.qsub
-echo "#  jobname                            " >> exe.qsub
-echo "#$ -N vessel.$num                     " >> exe.qsub
-echo "#  inherit submission env             " >> exe.qsub
-echo "#$ -V                                 " >> exe.qsub
-echo "# The job is located in the current   " >> exe.qsub
-echo "# working directory.                  " >> exe.qsub
-echo "#$ -cwd                               " >> exe.qsub
-echo "                                      " >> exe.qsub
-echo "#$ -o \$JOB_NAME.o\$JOB_ID            " >> exe.qsub
-echo "#$ -q normal                          " >> exe.qsub
-echo "#$ -pe 8way 32                        " >> exe.qsub
-echo "#$ -l h_rt=03:55:00                   " >> exe.qsub
-echo "set -x                                " >> exe.qsub
-echo "ibrun python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --run_fem $1 " >> exe.qsub
+num=$(echo $1 | awk -F. '{print $NF}')
+echo "#!/bin/bash                           " >  exe.$num.qsub 
+echo "# Which account to be charged cpu time" >> exe.$num.qsub
+echo "#$ -A UTMDACC-DIP                     " >> exe.$num.qsub
+echo "#  combine stdout stderr              " >> exe.$num.qsub
+echo "#$ -j y                               " >> exe.$num.qsub
+echo "#  jobname                            " >> exe.$num.qsub
+echo "#$ -N vessel.$num                     " >> exe.$num.qsub
+echo "#  inherit submission env             " >> exe.$num.qsub
+echo "#$ -V                                 " >> exe.$num.qsub
+echo "# The job is located in the current   " >> exe.$num.qsub
+echo "# working directory.                  " >> exe.$num.qsub
+echo "#$ -cwd                               " >> exe.$num.qsub
+echo "                                      " >> exe.$num.qsub
+echo "#$ -o \$JOB_NAME.o\$JOB_ID            " >> exe.$num.qsub
+echo "#$ -q normal                          " >> exe.$num.qsub
+echo "#$ -pe 8way 32                        " >> exe.$num.qsub
+echo "#$ -l h_rt=03:55:00                   " >> exe.$num.qsub
+echo "set -x                                " >> exe.$num.qsub
+echo "ibrun python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --run_fem $1 " >> exe.$num.qsub
 echo 0.0 >  $2 
