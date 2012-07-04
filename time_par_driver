@@ -6,7 +6,7 @@ CONCURRENCY=16
 APPLIC_PROCS=16
 
 # node offset
-RELATIVE_NODE=$(( (num - 1) % CONCURRENCY * APPLIC_PROCS ))
+#RELATIVE_NODE=$(( (num - 1) % CONCURRENCY * APPLIC_PROCS ))
 
 #echo $num ibrun -n $APPLIC_PROCS -o $RELATIVE_NODE python ./deltapModeling.py $1 $2  $PWD
 #  redirect from /dev/null to save system file system
