@@ -1,0 +1,21 @@
+#!/bin/bash                           
+# Which account to be charged cpu time
+#$ -A UTMDACC-DIP   	              
+#  combine stdout stderr             
+#$ -j y                           	
+#  jobname                         
+#$ -N realization             	
+#  inherit submission env            
+#$ -V                             	
+# The job is located in the current  
+# working directory.              	
+#$ -cwd                           	
+
+#$ -o $JOB_NAME.o$JOB_ID        	
+#$ -q normal                      	
+# total # of procs = nprocs / 16 * nway
+#$ -pe 8way 512              	
+#$ -l h_rt=01:35:00               
+set -x
+echo $PE_HOSTFILE |xargs cat
+cd $WORKDIR; dakota pce_run_gPC.in

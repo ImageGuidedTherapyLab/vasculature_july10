@@ -8,13 +8,17 @@
 # serial application(s) and place them in your WORKDIR
 # directory.  Then, edit the CONTROL_FILE to specify 
 # each executable per process.
+# For 4 realizations, 00:55:00 is enough.
+# for 256 realizations, 15:00:00 is enough.
 #-------------------------------------------------------
 #-------------------------------------------------------
 # 
 #         <------ Setup Parameters ------>
 #
 #$ -N Parametric 
-#$ -pe 4way 256 
+#$ -j y #combine stderr and stdout
+# total # of jobs  = nprocs / 16 * nway
+#$ -pe 4way 16 
 #$ -q normal
 #$ -o Parametric.o$JOB_ID
 #$ -l h_rt=00:55:00
@@ -23,7 +27,6 @@
 #   <------ You MUST Specify a Project String ----->
 #$ -A UTMDACC-DIP
 #  combine stdout stderr              
-#$ -j y 
 #------------------------------------------------------
 #
 # Usage:
@@ -84,14 +87,12 @@ endif
 # Job Submission
 #----------------
 
+# echo compute nodes
+echo $PE_HOSTFILE |xargs cat
+# echo directory stripe info
+# http://en.wikipedia.org/wiki/Data_striping 
+lfs getstripe $WORKDIR/realization
 cd $WORKDIR/
 echo " WORKING DIR:   $WORKDIR/"
 
 $TACC_LAUNCHER_DIR/paramrun $EXECUTABLE $CONTROL_FILE
-
-echo " "
-echo " Parameteric Job Complete"
-echo " assemblying... "
-cd ..
-ibrun -n 1 -o 0 python $DDDAS_SRC/Examples/TreatmentPlanning/gPCWFS.py --assemble_stats=$WORKDIR
-echo " assembly complete !!! "
