@@ -18,10 +18,10 @@
 #$ -N Parametric 
 #$ -j y #combine stderr and stdout
 # total # of jobs  = nprocs / 16 * nway
-#$ -pe 4way 16 
+#$ -pe 2way 16 
 #$ -q normal
 #$ -o Parametric.o$JOB_ID
-#$ -l h_rt=00:55:00
+#$ -l h_rt=01:59:00
 #$ -V
 #$ -cwd
 #   <------ You MUST Specify a Project String ----->
