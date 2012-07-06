@@ -14,7 +14,7 @@
 #$ -o $JOB_NAME.o$JOB_ID        	
 #$ -q normal                      	
 # total # of procs = nprocs / 16 * nway
-#$ -pe 8way 512              	
+#$ -pe 8way 128              	
 #$ -l h_rt=01:35:00               
 set -x
 echo $PE_HOSTFILE |xargs cat

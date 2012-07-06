@@ -2,7 +2,7 @@
 # simple wrapper 
 num=$(echo $1 | awk -F. '{print $NF}')
 # num of total processor should equal CONCURRENCY * APPLIC_PROCS
-CONCURRENCY=16
+CONCURRENCY=4
 # number of processors per application job
 APPLIC_PROCS=16
 
